@@ -1,2 +1,2 @@
 .vercel
-.flask/node_modules
+node_modules
