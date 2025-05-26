@@ -1,112 +1,121 @@
+# SPDX-FileCopyrightText: 2019 ladyada for Adafruit Industries
+# SPDX-License-Identifier: MIT
+
+from os import getenv
+
+import adafruit_connection_manager
+import adafruit_requests
 import board
+import busio
 import neopixel
+from digitalio import DigitalInOut
 import time
-import math
-import random
+
+from adafruit_esp32spi import adafruit_esp32spi
+
+# Get wifi details and more from a settings.toml file
+# tokens used by this Demo: CIRCUITPY_WIFI_SSID, CIRCUITPY_WIFI_PASSWORD
+ssid = getenv("CIRCUITPY_WIFI_SSID")
+password = getenv("CIRCUITPY_WIFI_PASSWORD")
 
 NUM_PIXELS = 80
 PIN = board.D6
-pixels = neopixel.NeoPixel(PIN, NUM_PIXELS, brightness=0.4, auto_write=False)
+pixels = neopixel.NeoPixel(PIN, NUM_PIXELS, brightness=0.7, auto_write=False)
 
+
+print("ESP32 SPI webclient test")
+ 
+JSON_URL = "http://192.168.68.133:5000/processed-image"
+ 
+ 
+# If you are using a board with pre-defined ESP32 Pins:
+# esp32_cs = DigitalInOut(board.ESP_CS) 
+# esp32_ready = DigitalInOut(board.ESP_BUSY)
+# esp32_reset = DigitalInOut(board.ESP_RESET)
+
+# If you have an AirLift Shield: 
+# esp32_cs = DigitalInOut(board.D10)
+# esp32_ready = DigitalInOut(board.D7)
+# esp32_reset = DigitalInOut(board.D5)
+
+# If you have an AirLift Featherwing or ItsyBitsy Airlift:
+esp32_cs = DigitalInOut(board.D13)
+esp32_ready = DigitalInOut(board.D11)
+esp32_reset = DigitalInOut(board.D12)
+
+# If you have an externally connected ES P32:
+# NOTE: You may need to change the pins to reflect your wiring
+# esp32_cs = DigitalInOut(board.D9)
+# esp32_ready = DigitalInOut(board.D10) 
+# esp32_reset = DigitalInOut(board.D5)
+
+# Secondary (SCK1) SPI used to connect to WiFi board on Arduino Nano Connect RP2040
+if "SCK1" in dir(board):
+    spi = busio.SPI(board.SCK1, board.MOSI1, board.MISO1)
+else:
+    spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
+esp = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
+
+pool = adafruit_connection_manager.get_radio_socketpool(esp)
+ssl_context = adafruit_connection_manager.get_radio_ssl_context(esp)
+requests = adafruit_requests.Session(pool, ssl_context)
+
+if esp.status == adafruit_esp32spi.WL_IDLE_STATUS:
+    print("ESP32 found and in idle mode")
+# print("Firmware vers.", esp.firmware_version)
+# print("MAC addr:", ":".join("%02X" % byte for byte in esp.MAC_address))
+
+# for ap in esp.scan_networks():
+    # print("\t%-23s RSSI: %d" % (ap.ssid, ap.rssi))
+    
+# print("Connecting to AP...")
+while not esp.is_connected:
+    try:
+        esp.connect_AP(ssid, password)
+    except OSError as e:
+        print("could not connect to AP, retrying: ", e)
+        continue
+# print("Connected to", esp.ap_info.ssid, "\tRSSI:", esp.ap_info.rssi)
+# print("My IP address is", esp.ipv4_address)
+# print("IP lookup adafruit.com: %s" % esp.pretty_ip(esp.get_host_by_name("adafruit.com")))
+# print("Ping google.com: %d ms" % esp.ping("google.com"))
 def wheel(pos):
-    # Generate rainbow colors across 0-255
+    """Generate rainbow colors across 0–255 positions."""
+    if pos < 0 or pos > 255:
+        return (0, 0, 0)
     if pos < 85:
-        return (int(pos * 3), int(255 - pos * 3), 0)
+        return (255 - pos * 3, pos * 3, 0)
     elif pos < 170:
         pos -= 85
-        return (int(255 - pos * 3), 0, int(pos * 3))
+        return (0, 255 - pos * 3, pos * 3)
     else:
         pos -= 170
-        return (0, int(pos * 3), int(255 - pos * 3))
-
-def rainbow_chase(wait,count, mode):
-    for j in range(0,255,count):
+        return (pos * 3, 0, 255 - pos * 3)
+def rainbow_chase(wait):
+    for j in range(255):
         for i in range(NUM_PIXELS):
-            
             # Group pixels in chunks of 8
-            if(mode):
-                group_index = i % 10
-            else:
-                group_index = i//8  
+            group_index = i % 8
             pixel_index = (group_index * 256 // 8 + j) & 255
             color = wheel(pixel_index)
-            # pixels[i] = (255,255,255)
             pixels[i] = color
         pixels.show()
         time.sleep(wait)
-
-# for i,p in enumerate(pixels): 
-#     if i == 0:
-#         pixels[0] = (0,0,0)
-#         continue
-#     pixels[i] = (0,100,100) 
-# print("HELLO")
-colors = []
-
-for c in range(3):
-    # Flicker a few times with varying brightness and delay
-    for _ in range(random.randint(1, 3)):
-        brightness = random.randint(50, 200)
-        color = (brightness, brightness, brightness)
-        for i in range(len(pixels)):
-            pixels[i] = color
-        pixels.show()
-        time.sleep(random.uniform(0.05, 0.15))
-
-        for i in range(len(pixels)):
-            pixels[i] = (0, 0, 0)
-        pixels.show()
-        time.sleep(random.uniform(0.1, 0.2))
-    
-    # Slowly get brighter
-    brightness = int((c + 1) / 5.0 * 255)
-    for i in range(len(pixels)):
-        pixels[i] = (brightness, brightness, brightness)
-    pixels.show()
-    time.sleep(0.2)
-
-for i in range(len(pixels)):
-    pixels[i] = (200,200,200)
-pixels.show()
-X, Y = 8, 10
-pos = 0
-hits = 0
-trail = []
+# esp._debug = True
 while True:
-  
-    # pos += Y + 1
-    # hits += 1
-    # pos %= X*Y
-    # trail.insert(0, pos)
-    # if(len(trail) > 3):
-    #     pixels[trail.pop()] = (200,200,200) 
-    #     pixels[trail[0]] = (255,0,0)
-    #     pixels[trail[1]] = (255,125,0)
-    #     pixels[trail[2]] = (255,255,0)
-        
-    # pixels.show()
-    # time.sleep(0.1)
-    # if hits == 80:
-    #     for i in range(len(pixels)):
-    #         pixels[i] = (200,200,200)
-    #     time.sleep(1)
-    #     pixels.show()
-    #     hits = 0
-    
-            
-    # for i in range(1,8):
-    #     rainbow_chase(0,i, False)  
-    # for i in range(1,8 ):
-    #     rainbow_chase(0,i, False)
-# with open("led-colors.txt", "r") as file:
-#     for i,line in enumerate(file.read().split("\n")):
-#         pixels[i] = eval(line[3:])
-# while True:
-    
-#         pixels.show()
-        # time.sleep(0.4)
-#         # pixels[i] = (255,255,255)
-# print("hello") 
-# while True:
-#     pixels.show()
-#     time.sleep(5)   
+    try:
+        r = requests.get(JSON_URL)
+        colors = r.json()['colors']
+    except:
+        colors = [] 
+    if colors:
+        for arc in range(8):
+            for height in range(10):
+                color = colors[arc][height]
+                pixels[arc * 10 + height] = (color["r"], color["g"], color["b"])
+        pixels.show()
+        print(pixels) 
+        time.sleep(5) 
+    else:
+        rainbow_chase(0)
+     

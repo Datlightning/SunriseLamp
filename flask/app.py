@@ -1,7 +1,7 @@
 import os
 import uuid
 import numpy as np  # ← Add this line
-from flask import Flask, request, jsonify, render_template, redirect, url_for
+from flask import Flask, request, jsonify, render_template, redirect, url_for, abort
 from collections import deque
 from PIL import Image
 import threading
@@ -10,14 +10,16 @@ from werkzeug.utils import secure_filename
 
 
 
-UPLOAD_FOLDER = './flask/static/uploads/'
+UPLOAD_FOLDER = './static/uploads/'
 ALLOWED_EXTENSIONS = {'jpg', 'png', 'webp'}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = "68c2b6ceb89ed3cd1f1c0e78d5fd79f710bef290bda90a70"
+SECRET_KEY = "68c2b6ceb89ed3cd1f1c0e78d5fd79f710bef290bda90a70"
+app.config['SECRET_KEY'] = SECRET_KEY
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 image_queue = deque()
+current_image = None
 processed_colors = []  # Global variable to hold the grid of RGB values
 
 def allowed_file(filename):
@@ -35,22 +37,28 @@ def get_image_queue():
         f'/static/uploads/{os.path.basename(path)}' for path in list(image_queue)
     ]
     return jsonify({'queue': queue_urls})
-
+@app.route('/current-image')
+def get_current_image():
+    url = f'/static/uploads/{os.path.basename(current_image)}'
+    return jsonify({'current': [url]})
+#192.168.68.133
+@app.route('/process-image-queue')
 def process_image_queue():
-    global path
-    global processed_colors
-    while True:
-        if image_queue:
-            if len(image_queue) <= 1:
-                path=image_queue[0]
-                processed_colors = compute_color_grid(path)
-            else:
-                path = image_queue.popleft()
-                processed_colors = compute_color_grid(image_queue[0])
-                os.remove(path)
-        time.sleep(20)
 
-threading.Thread(target=process_image_queue, daemon=True).start()
+    token = request.args.get("token")
+    if token != SECRET_KEY:
+        abort(403)
+
+    global processed_colors, current_image
+    if image_queue:
+        if current_image:
+            os.remove(current_image)
+        current_image = image_queue.popleft()
+        processed_colors = compute_color_grid(current_image)
+        return jsonify({'status': 'processed', 'image': current_image})
+    return jsonify({'status': 'idle'})
+
+# threading.Thread(target=process_image_queue, daemon=True).start()
 
 def compute_color_grid(image_path):
     with Image.open(image_path) as img:
@@ -82,6 +90,9 @@ def get_processed_image():
 @app.route('/', methods=['GET', 'POST'])
 def index():
     global image_queue
+    global processed_colors
+    global current_image
+
     uploaded_url = None
 
     if request.method == "POST":
@@ -101,7 +112,11 @@ def index():
             image.save(filepath)
 
             # Add to queue
-            image_queue.append(filepath)
+            if not current_image:
+                current_image = filepath
+                processed_colors = compute_color_grid(filepath)
+            else:
+                image_queue.append(filepath)
             return redirect(url_for('index'))
 
 
@@ -110,4 +125,5 @@ def index():
     return render_template('index.html')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
+ 

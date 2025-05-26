@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Rotating 3D Sphere</title>
+  <title>Sunrise Lamp</title>
+  <link rel="icon" type="image/png" href="../static/img/logo.png">
   <style>
     body { margin: 0; overflow: hidden; }
     canvas { display: block; }
@@ -32,9 +33,14 @@
         Upload
       </button>
     </form>
-
+    <div class="mt-6">
+      
+      <p class="font-semibold">Displayed Image:</p>
+      <div id="currentImage" class="flex flex-wrap gap-4 mt-2"></div>
+    </div>
     <!-- Queue -->
     <div class="mt-6">
+
       <p class="font-semibold">Current Queue:</p>
       <div id="queueContainer" class="flex flex-wrap gap-4 mt-2"></div>
     </div>
@@ -44,21 +50,26 @@
   </div>
 
   <!-- Right Panel: Visualization -->
+   <div class="bg-white p-6 rounded shadow-md max-w-lg ">
+  <h1 class="text-3xl font-bold text-red-800 mb-4">Simulated Lamp</h1>
+
   <div class="flex flex-col items-center space-y-4">
     <!-- Progress Bar -->
-    <div id="loading-container" class="w-32 h-1 bg-gray-300 relative">
+   
+
+    <!-- 3D Render Area -->
+      <div id="threeContainer" class="w-128 h-128 border border-gray-400 rounded overflow-hidden"></div>
+       <div id="loading-container" class="w-32 h-1 bg-gray-300 relative justify-start">
       <div
         id="loading-bar"
         class="absolute left-0 top-0 h-1 bg-blue-600 transition-all duration-300"
         style="width: 0%;"
       ></div>
     </div>
-
-    <!-- 3D Render Area -->
-      <div id="threeContainer" class="w-128 h-128 border border-gray-400 rounded overflow-hidden"></div>
       <!-- Keep Three.js scripts below -->
       <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
       <script src="{{ url_for('static', filename='script.js') }}"></script>
+  </div>
   </div>
 </div>
 
