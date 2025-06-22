@@ -123,7 +123,7 @@ async function init() {
       const y = radius * Math.sin(polar) * Math.sin(azimuth);
       const z = radius * Math.cos(polar);
 
-      const hexNum = parseInt(rgbToHex(colors[arc][i]).replace('#', ''), 16);
+      const hexNum = parseInt(rgbToHex(colors[0][arc][i]).replace('#', ''), 16);
 
       const rectLight = new THREE.PointLight(hexNum, 0.3, 4);
       rectLight.position.set(x, y, z);

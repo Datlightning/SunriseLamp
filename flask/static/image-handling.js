@@ -21,10 +21,12 @@ async function updateCurrentDisplay() {
     container.innerHTML = '';
 
     data.current.forEach(url => {
-    const img = document.createElement('img');
-    img.src = url;
-    img.className = 'w-24 h-24 object-cover rounded shadow';
-    container.appendChild(img);
+      if(url !== ""){
+        const img = document.createElement('img');
+        img.src = url;
+        img.className = 'w-24 h-24 object-cover rounded shadow';
+        container.appendChild(img);
+      }
     });
 }
 

@@ -25,7 +25,7 @@ pixels = neopixel.NeoPixel(PIN, NUM_PIXELS, brightness=0.7, auto_write=False)
 
 print("ESP32 SPI webclient test")
  
-JSON_URL = "http://192.168.68.133:5000/processed-image"
+JSON_URL = "https://vihas.pythonanywhere.com/processed-image"
  
  
 # If you are using a board with pre-defined ESP32 Pins:
