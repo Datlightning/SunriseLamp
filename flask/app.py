@@ -1,13 +1,13 @@
 import os
 import uuid
-import numpy as np  # ← Add this line
+# import numpy as np  # ← Add this line
 from flask import Flask, request, jsonify, render_template, redirect, url_for, abort
 from collections import deque
 from PIL import Image
-import threading
-import time
+# import threading
+# import time
 from werkzeug.utils import secure_filename
-from image_processing import compute_color_grid, ai_this_jon
+# from image_processing import compute_color_grid, ai_this_jon
 from wholetbromakeml import get_frames
 
 DEBUG = True

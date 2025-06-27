@@ -1,11 +1,10 @@
-from re import L
 import numpy as np
 from PIL import Image
 from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from collections import deque
 import random
-from matplotlib.animation import FuncAnimation
+# from matplotlib.animation import FuncAnimation
 import colorsys
 
 def get_muted_contrasting_color(centers):
@@ -140,79 +139,79 @@ def get_frames(url):
 
 
 
-if __name__ == "__main__":
-    url = "C:/Users/vihas/Documents/GitHub/SunriseLamp/flask/static/uploads/fa401a3f3f32460997caaedb1d573c84_20211229_073930-01.jpeg"
-    get_frames(url)
-    img_data, centers, labels = load_and_cluster(url)
-    h, w = labels.shape
+# if __name__ == "__main__":
+#     url = "C:/Users/vihas/Documents/GitHub/SunriseLamp/flask/static/uploads/fa401a3f3f32460997caaedb1d573c84_20211229_073930-01.jpeg"
+#     get_frames(url)
+#     img_data, centers, labels = load_and_cluster(url)
+#     h, w = labels.shape
 
-    canvas = np.zeros((80, 80, 3), dtype=np.uint8)
+#     canvas = np.zeros((80, 80, 3), dtype=np.uint8)
 
 
-    coords = [(x, y) for y in range(80) for x in range(80)]
+#     coords = [(x, y) for y in range(80) for x in range(80)]
 
-    # Assign weights: favor bottom pixels (y=79)
-    weights = np.array([y for (_, y) in coords])
-    weights = (weights + 1) ** 2  # nonlinear bias to increase bottom weight
+#     # Assign weights: favor bottom pixels (y=79)
+#     weights = np.array([y for (_, y) in coords])
+#     weights = (weights + 1) ** 2  # nonlinear bias to increase bottom weight
 
-    # Normalize to 0–1 for consistent scaling
-    weights = weights / weights.max()
+#     # Normalize to 0–1 for consistent scaling
+#     weights = weights / weights.max()
 
-    # Assign random priority scaled by weights (lower = higher priority)
-    prioritized_coords = sorted(
-        coords,
-        key=lambda c: random.random() / ((c[1] + 1) ** 2), reverse=False # or use weights[c_idx]
-    )
+#     # Assign random priority scaled by weights (lower = higher priority)
+#     prioritized_coords = sorted(
+#         coords,
+#         key=lambda c: random.random() / ((c[1] + 1) ** 2), reverse=False # or use weights[c_idx]
+#     )
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
-    im = ax1.imshow(canvas)
-    ax1.axis('off')
-    touched_mask = np.zeros((80, 80), dtype=bool)
+#     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+#     im = ax1.imshow(canvas)
+#     ax1.axis('off')
+#     touched_mask = np.zeros((80, 80), dtype=bool)
 
-    canvas_small = downscale_to_8x10(canvas)
-    im_small = ax2.imshow(canvas_small, interpolation='nearest')
-    ax2.set_title("8x10 Preview")
-    ax2.axis('off')
-    sky_color = get_muted_contrasting_color(centers=centers)
-    plt.title("Sunrise Reveal Animation")
-    color_clarity = {0:[],1:[],2:[]}
+#     canvas_small = downscale_to_8x10(canvas)
+#     im_small = ax2.imshow(canvas_small, interpolation='nearest')
+#     ax2.set_title("8x10 Preview")
+#     ax2.axis('off')
+#     sky_color = get_muted_contrasting_color(centers=centers)
+#     plt.title("Sunrise Reveal Animation")
+#     color_clarity = {0:[],1:[],2:[]}
     
 
-    p1,p2,p3,p4 = -1,-1,-1,-1
-    def update(frame):
-        global p1, p2, p3, p4, canvas
-        pixels_per_frame = 50
-        canvas = brighten_background(canvas, touched_mask, sky_color)
-        for _ in range(pixels_per_frame):
-            if p4 >= len(prioritized_coords):
-                return [im]
-            p1 += 1
-            p2 += 1 if p1 > 1200 else 0
-            p3 += 1 if p2 > 1200 else 0
-            p4 += 1 if p3 > 1200 else 0
-            if p1 >= 0 and p1 < len(prioritized_coords):
-                x, y = prioritized_coords[p1]
-                cluster_idx = labels[y, x]
-                cluster_color = centers[cluster_idx]
-                canvas[y, x] = cluster_color
-                touched_mask[y, x] = True
-            if p2 >= 0  and p2 < len(prioritized_coords):
-                x,y = prioritized_coords[p2]
-                canvas[y,x] = clarify_color((y,x), img_data, labels, centers, 0)
-            if p3 >= 0  and p3 < len(prioritized_coords):
-                x,y = prioritized_coords[p3]
-                canvas[y,x] = clarify_color((y,x), img_data, labels, centers, 1)
-            if p4 >= 0  and p4 < len(prioritized_coords):
-                x,y = prioritized_coords[p4]
-                canvas[y,x] = clarify_color((y,x), img_data, labels, centers, 2)
+#     p1,p2,p3,p4 = -1,-1,-1,-1
+#     def update(frame):
+#         global p1, p2, p3, p4, canvas
+#         pixels_per_frame = 50
+#         canvas = brighten_background(canvas, touched_mask, sky_color)
+#         for _ in range(pixels_per_frame):
+#             if p4 >= len(prioritized_coords):
+#                 return [im]
+#             p1 += 1
+#             p2 += 1 if p1 > 1200 else 0
+#             p3 += 1 if p2 > 1200 else 0
+#             p4 += 1 if p3 > 1200 else 0
+#             if p1 >= 0 and p1 < len(prioritized_coords):
+#                 x, y = prioritized_coords[p1]
+#                 cluster_idx = labels[y, x]
+#                 cluster_color = centers[cluster_idx]
+#                 canvas[y, x] = cluster_color
+#                 touched_mask[y, x] = True
+#             if p2 >= 0  and p2 < len(prioritized_coords):
+#                 x,y = prioritized_coords[p2]
+#                 canvas[y,x] = clarify_color((y,x), img_data, labels, centers, 0)
+#             if p3 >= 0  and p3 < len(prioritized_coords):
+#                 x,y = prioritized_coords[p3]
+#                 canvas[y,x] = clarify_color((y,x), img_data, labels, centers, 1)
+#             if p4 >= 0  and p4 < len(prioritized_coords):
+#                 x,y = prioritized_coords[p4]
+#                 canvas[y,x] = clarify_color((y,x), img_data, labels, centers, 2)
 
-        im.set_data(canvas)
-        canvas_small = downscale_to_8x10(canvas)
-        im_small.set_data(canvas_small)
+#         im.set_data(canvas)
+#         canvas_small = downscale_to_8x10(canvas)
+#         im_small.set_data(canvas_small)
         
-        return [im, im_small]
+#         return [im, im_small]
 
-    # Step 6: Run the animation
-    anim = FuncAnimation(fig, update, frames=100, interval=50, blit=True)
-    plt.show()
+#     # Step 6: Run the animation
+#     anim = FuncAnimation(fig, update, frames=100, interval=50, blit=True)
+#     plt.show()
 
