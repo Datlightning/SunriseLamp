@@ -60,7 +60,7 @@ def process_image_queue():
             os.remove(current_image)
         current_image = image_queue.popleft()
         # processed_colors = compute_color_grid(current_image, 10)
-        processed_colors = get_frames(current_image)
+        processed_colors, _ = get_frames(current_image)
         return jsonify({'status': 'processed', 'image': current_image})
     return jsonify({'status': 'idle'})
 
@@ -102,7 +102,7 @@ def index():
             if not current_image:
                 current_image = filepath
         # processed_colors = compute_color_grid(current_image, 10)
-                processed_colors = get_frames(current_image)            
+                processed_colors, _ = get_frames(current_image)            
             else:
                 image_queue.append(filepath)
             return redirect(url_for('index'))
