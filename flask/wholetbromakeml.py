@@ -17,14 +17,29 @@ def get_muted_contrasting_color(centers):
 
     # Step 3: shift hue by 180° (opposite on color wheel), clamp saturation/value
     h = (h + 0.5) % 1.0          # rotate hue
-    s = 1      # reduce saturation
+    s = 0.1      # reduce saturation
     v = min(0.7, v * 0.9)        # slightly darker
 
     # Step 4: convert back to RGB
     r, g, b = colorsys.hsv_to_rgb(h, s, v)
-    # input(f"Color: {round(r*255)},{round(g*255)},{round(b*255)}\n")
+    # input(f"Color: {round(r*255)},{round(g*255)},{round(b*255)}/n")
 
     return (np.array([r, g, b]) * 255).astype(np.uint8)
+def amplify_saturation(color):
+    r,g,b = color
+    h, s, v = colorsys.rgb_to_hsv(r, g, b)
+
+    # Step 3: shift hue by 180° (opposite on color wheel), clamp saturation/value
+ 
+    s = 0.8     # reduce saturation
+   
+
+    # Step 4: convert back to RGB
+    r, g, b = colorsys.hsv_to_rgb(h, s, v)
+    # input(f"Color: {round(r*255)},{round(g*255)},{round(b*255)}/n")
+
+    return (np.array([r, g, b]) * 255).astype(np.uint8)
+    
 def clarify_color(point, img_data, labels, centers, stage):
     y, x = point
     true_color = img_data[y, x].astype(np.float32)
@@ -51,20 +66,20 @@ def clarify_color(point, img_data, labels, centers, stage):
     # Slightly jitter hue and increase saturation/value
     h += random.uniform(-0.04 * (3 - stage), 0.04 * (3-stage))
     h = h % 1.0
-    s = min(1.0, s - random.uniform(0.2, 0.4))  # boost saturation
-    v = min(1.0, v - random.uniform(0.1, 0.2))  # boost brightness
+    s = max(0, s - random.uniform(0.2, 0.4))  # boost saturation
+    v = max(0, v - random.uniform(0.1, 0.2))  # boost brightness
 
     # Convert back to RGB
     r2, g2, b2 = colorsys.hsv_to_rgb(h, s, v)
     vibrant = np.array([r2, g2, b2]) * 255
     return vibrant.astype(np.uint8)
-def brighten_background(canvas1, touched_mask, target_color, max_step=50):
+def brighten_background(canvas1, canvas_copy, touched_mask, target_color, max_step=50):
         """
         Randomly brightens each pixel toward a target sky color.
         """
         
         untouched_mask = ~touched_mask  # shape: (h, w)
-        canvas1[untouched_mask] = [0, 0, 0]  # sets all 3 channels to 0 for untouched pixels
+        canvas1[untouched_mask] = canvas_copy[untouched_mask]  # sets all 3 channels to 0 for untouched pixels
 
         # Apply noise update
         for _ in range(3):
@@ -81,11 +96,8 @@ def brighten_background(canvas1, touched_mask, target_color, max_step=50):
                 )
 
         return canvas1
+def load_and_cluster(np_img, k=5):
 
-
-def load_and_cluster(image_path, k=5, resize_to=(80, 80)):
-    img = Image.open(image_path).convert('RGB').resize(resize_to)
-    np_img = np.array(img)
     h, w = np_img.shape[:2]
 
     flat_pixels = np_img.reshape(-1, 3)
@@ -96,114 +108,56 @@ def load_and_cluster(image_path, k=5, resize_to=(80, 80)):
     labels = kmeans.labels_.reshape(h, w)
 
     return np_img, cluster_centers, labels
-
 def downscale_to_8x10(c):
     pil_img = Image.fromarray(c.astype(np.uint8))
     small = pil_img.resize((8, 10), resample=Image.Resampling.BOX)
     return np.array(small)
-def generate_sky_frames_from_canvas(
-    starting_canvas, iterations=10, max_step=10, target_color=np.array([135, 206, 235])
-):
-    """
-    Args:
-        starting_canvas: np.ndarray (H, W, 3), dtype=uint8
-        iterations: how many noise steps to apply
-        max_step: max noise increment per channel per step
-        target_color: RGB np.array to cap noise additions (default: sky blue)
-    Returns:
-        frames: list of 2D list-of-dict RGB frames
-    """
-    canvas = starting_canvas.copy()
-    height, width, _ = canvas.shape
-    touched_mask = np.zeros((height, width), dtype=bool)  # all untouched
-
-    # Generate sky gradient noise image
-    def generate_sky_gradient(height, width):
-        sky_blue = np.array([135, 206, 235])
-        white = np.array([255, 255, 255])
-        gradient = np.zeros((height, width, 3), dtype=np.uint8)
-        for y in range(height):
-            ratio = y / (height - 1)
-            biased_ratio = ratio * 0.2  # mostly blue
-            color = (1 - biased_ratio) * sky_blue + biased_ratio * white
-            gradient[y, :, :] = color.astype(np.uint8)
-        return gradient
-
-    noise_img = generate_sky_gradient(height, width)
-
-    def numpy_to_2d_dict_array(np_array, rotate = True):
-        frame_data = []
-        if rotate:
-            for col in range(8):
-                frame_data.append([])
-                for row in range(10):
-                    pixel = np_array[row][col]
-                    frame_data[col].insert(0,{'r': int(pixel[0]), 'g': int(pixel[1]), 'b': int(pixel[2])})
-        else:
-            for y in range(8):
-                row = []
-                for x in range(10):
-                    r, g, b = np_array[y, x]
-                    row.append({'r': int(r), 'g': int(g), 'b': int(b)})
-                frame_data.append(row)
-        return frame_data
-
-
-    hr_frames = []
-    frames = []
+def prioritize_coords(coords, weights):
+    # Get weights based on vertical position
     
-    for _ in range(iterations):
-        noise = np.random.randint(1, max_step + 1, (height, width, 3))
-        noise = (noise * (noise_img / 255.0)).astype(np.uint8)
 
-        untouched_mask = ~touched_mask
-        for c in range(3):
-            canvas[..., c] = np.where(
-                untouched_mask,
-                np.minimum(canvas[..., c] + noise[..., c], target_color[c]),
-                canvas[..., c]
-            )
+    # Prioritize coords using random.random() divided by weight (higher weight → more likely to be early)
+    prioritized_coords = sorted(
+        zip(coords, weights),
+        key=lambda cw: random.random() / cw[1]
+    )
 
-        hr_frames.append(numpy_to_2d_dict_array(canvas, rotate = False))
-        canvas_small = downscale_to_8x10(canvas)        
-        frames.append(numpy_to_2d_dict_array(canvas_small, rotate=True))
-    return frames, hr_frames
-
-def get_frames(url):
+    # Strip weights from result
+    return [coord for coord, _ in prioritized_coords]
+def generate_animation(canvas, end_img, noise=True):
     frames= []
     high_res_frames = []
-    img_data, centers, labels = load_and_cluster(url)
+    img_data, centers, labels = load_and_cluster(end_img)
     sky_color = get_muted_contrasting_color(centers=centers)
     h,w= 80,80
     touched_mask = np.zeros((h,w), dtype=bool)
-
-   
-    canvas = np.zeros((80,80,3), dtype=np.uint8)
-
+    canvas_copy = canvas.copy()
     coords = [(x, y) for y in range(80) for x in range(80)]
 
     # Assign weights: favor bottom pixels (y=79)
-    weights = np.array([y for (_, y) in coords])
+    if noise:
+        weights = np.array([y for (_, y) in coords])
+    else:
+        weights = np.array([h - y for (_,y) in coords])
     weights = (weights + 1) ** 2  # nonlinear bias to increase bottom weight
 
     # Normalize to 0–1 for consistent scaling
     weights = weights / weights.max()
 
     # Assign random priority scaled by weights (lower = higher priority)
-    prioritized_coords = sorted(
-        coords,
-        key=lambda c: random.random() / ((c[1] + 1) ** 2), reverse=False # or use weights[c_idx]
-    )
+    prioritized_coords = prioritize_coords(coords, weights)
+
 
     canvas_small = downscale_to_8x10(canvas)
     p1,p2,p3,p4 = -1,-1,-1,-1
-    frame_count = 20
+    frame_count = 12 if noise else 10
     pixels_per_frame = h*w//frame_count
     while True:
-        canvas = brighten_background(canvas, touched_mask, sky_color)
+        if(noise):
+            canvas = brighten_background(canvas,canvas_copy, touched_mask, sky_color)
         for _ in range(pixels_per_frame):
             if p4 >= len(prioritized_coords):
-                return frames, high_res_frames
+                return frames, high_res_frames, sky_color
             p1 += 1
             p2 += 1 if p1 > 1200 else 0
             p3 += 1 if p2 > 1200 else 0
@@ -211,7 +165,6 @@ def get_frames(url):
             if p1 >= 0 and p1 < len(prioritized_coords):
                 x, y = prioritized_coords[p1]
                 cluster_idx = labels[y, x]
-                cluster_color = centers[cluster_idx]
                 canvas[y, x] = clarify_color((y,x),img_data, labels, centers, -1)
                 touched_mask[y, x] = True
             if p2 >= 0  and p2 < len(prioritized_coords):
@@ -224,7 +177,7 @@ def get_frames(url):
                 x,y = prioritized_coords[p4]
                 canvas[y,x] = clarify_color((y,x),img_data, labels, centers, 2)
         high_frame_data = [
-            [{'r': int(pixel[0]), 'g': int(pixel[1]), 'b': int(pixel[2])} for pixel in row]
+            [(int(pixel[0]), int(pixel[1]),  int(pixel[2])) for pixel in row]
             for row in canvas
         ]
         canvas_small = downscale_to_8x10(canvas)
@@ -233,21 +186,80 @@ def get_frames(url):
              frame_data.append([])
              for row in range(10):
                   pixel = canvas_small[row][col]
-                  frame_data[col].insert(0,{'r': int(pixel[0]), 'g': int(pixel[1]), 'b': int(pixel[2])})
+                  frame_data[col].insert(0,( int(pixel[0]), int(pixel[1]), int(pixel[2])))
                   
         frames.append(frame_data)
         high_res_frames.append(high_frame_data)
-    
+def generate_sky_blue_gradient(sky_blue, height=80, width=80):
+    white = np.array([200, 200, 200], dtype=np.float32)     # White
 
+    gradient = np.zeros((height, width, 3), dtype=np.uint8)
+
+    for y in range(height):
+        # Ratio increases from 0 (top) to 1 (bottom)
+        # Bias the gradient so most of it is blue, only last 20% starts fading
+        ratio = ((height-y) / height)   # Bias to make transition subtle
+        color = (1 - ratio) * sky_blue + ratio * white
+        gradient[y, :, :] = color.astype(np.uint8)
+
+    return gradient
+def compress(frames):
+    output = bytearray()
+    for frame in frames:
+        for row in frame:
+            for pixel in row:
+                output += bytes(pixel)
+    return output
+def unpack(data, frames, width, height):
+    assert len(data) == frames * width * height * 3, "Byte length mismatch"
+    output_frames = []
+    idx = 0
+    for _ in range(frames):
+        unpacked_data = []
+        for _ in range(height):
+            row = []
+            for _ in range(width):
+                r = data[idx]
+                g = data[idx + 1]
+                b = data[idx + 2]
+                row.append(( r, g, b))
+                idx += 3
+            unpacked_data.append(row)
+        output_frames.append(unpacked_data)
+    return output_frames
+# Create and view the gradient    
+def get_frames(url):
+    img = Image.open(url).convert('RGB').resize((80,80), Image.Resampling.LANCZOS)
+    np_img = np.array(img)
+    canvas = np.zeros((80,80,3), dtype=np.uint8)
+    start, start_hr, sky_blue = generate_animation(canvas, np_img)
+
+    canvas = generate_sky_blue_gradient(amplify_saturation(sky_blue))
+    np_img = np.array(img)
+    end, end_hr, _ = generate_animation(np_img, canvas, noise=False)
+    return compress(start + end),  compress(start_hr + end_hr)
 
 
 if __name__ == "__main__":
-    url = "C:/Users/vihas/Documents/GitHub/SunriseLamp/flask/static/uploads/b20389f825034bcea068461b5897c28d_20220119_070413_-_Copy.jpg"
-    frames, hr_frames = get_frames(url)
-    print(len(frames))
-    print(len(frames[0]))
-    print(len(frames[0][0]))
-
+    url = "C:/Users/vihas/Downloads/download (4).jpeg"
+    comp_frames, comp_hr_frames = get_frames(url)
+    frames = unpack(comp_frames,frames=30,width=10,height=8)
+    hr_frames = unpack(comp_hr_frames,frames=30,width=80,height=80)
+    # print(len(frames))
+    # print(len(frames[0]))
+    # print(len(frames[0][0]))
+    long_af_frames = [[[{'r': r, 'g': g, 'b': b} for (r, g, b) in row] for row in data] for data in frames]
+    with open("file.txt", "w") as file:
+        file.write(str(frames))
+        file.close()
+    with open("compress.txt", "w") as file:
+        file.write(str(comp_frames))
+        file.close()
+    with open("long.txt", "w") as file:
+        file.write(str(long_af_frames))
+        file.close()
+    print(frames)
+    input("Press Enter to Visualize:\n")
     # img_data, centers, labels = load_and_cluster(url)
     # h, w = labels.shape
 
@@ -323,7 +335,7 @@ if __name__ == "__main__":
         for y in range(height):
             for x in range(width):
                 pixel = frame_dict_2d[y][x]
-                arr[y, x] = [pixel['r'], pixel['g'], pixel['b']]
+                arr[y, x] = [pixel[0], pixel[1], pixel[2]]
         if(rotate):
             return np.rot90(arr, k=1)  # Rotate 90° CCW
         return arr

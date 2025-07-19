@@ -9,6 +9,7 @@ from PIL import Image
 from werkzeug.utils import secure_filename
 # from image_processing import compute_color_grid, ai_this_jon
 from wholetbromakeml import get_frames
+import base64
 
 DEBUG = True
 # UPLOAD_FOLDER = './static/uploads/' if DEBUG else '/home/vihas/sunrise-lamp/flask/static/uploads'
@@ -72,7 +73,26 @@ def process_image_queue():
 @app.route('/processed-image', methods=['GET'])
 def get_processed_image():
     global processed_colors
-    return jsonify({"colors": processed_colors})
+    if(processed_colors):
+        b64_colors = base64.b64encode(processed_colors).decode('utf-8')
+        return jsonify({"colors": b64_colors})
+    else:
+        return jsonify({"colors":[]})
+@app.route('/processed-image1', methods=['GET'])
+def get_processed_image1():
+    global processed_colors
+    if(processed_colors):
+        b64_colors = base64.b64encode(processed_colors).decode('utf-8')
+        return jsonify({"colors": b64_colors})
+    else:
+        return jsonify({"colors":""})
+@app.route('/processed-image2', methods=['GET'])
+def get_processed_image2():
+    global processed_colors
+    if(processed_colors):
+        return jsonify({"colors": processed_colors[20:30]})
+    else:
+        return jsonify({"colors":[]})
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
