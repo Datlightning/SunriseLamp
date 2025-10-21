@@ -28,11 +28,11 @@ def compute_color_grid(image_path, num_frames):
                     y0 = row * 8
                     cell = shifted_img[y0:y0+8, x0:x0+10]
                     avg_color = cell.mean(axis=(0, 1)).astype(int)
-                    col_colors.insert(0, {
-                        "r": int(avg_color[0]),
-                        "g": int(avg_color[1]),
-                        "b": int(avg_color[2])
-                    })
+                    col_colors.insert(0, (
+                        int(avg_color[0]),
+                         int(avg_color[1]),
+                        int(avg_color[2])
+                    ))
                 frame_grid.append(col_colors)
             frames.append(frame_grid)
 

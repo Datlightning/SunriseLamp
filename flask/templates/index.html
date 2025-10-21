@@ -1,16 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>Sunrise Lamp</title>
   <link rel="icon" type="image/png" href="../static/img/logo.png">
   <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { display: block; }
-    
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+    }
   </style>
   <link href="../static/output.css" rel="stylesheet">
-    
+
 </head>
 <div class="flex flex-col md:flex-row gap-6 p-6">
 
@@ -20,21 +26,39 @@
 
     <!-- Upload Form -->
     <form method="post" enctype="multipart/form-data" class="space-y-4">
-      <input
-        id="imageInput"
-        type="file"
-        name="file"
-        class="bg-yellow-500 text-white px-4 py-2 rounded cursor-pointer w-full"
-      />
-      <button
-        type="submit"
-        class="bg-yellow-700 text-white px-4 py-2 rounded w-full"
-      >
-        Upload
-      </button>
+      <input id="imageInput" type="file" name="file"
+        class="bg-yellow-500 text-white px-4 py-2 rounded cursor-pointer w-full" />
+      <div class = "flex flex-col gap-4">
+        <div class="flex gap-4">
+          <button type="submit" name="action" value="sunrise" class="bg-yellow-700 text-white px-4 py-2 rounded w-full">
+            Generate Sunrise
+          </button>
+          <button type="submit" name="action" value="panorama"
+            class="bg-yellow-700 text-white px-4 py-2 rounded w-full">
+            Panorama Picture
+          </button>
+        </div>
+        <div class="flex">
+          <button type="submit" name="action" value="default"
+            class="bg-yellow-700 text-white px-4 py-2 rounded w-full">
+            Default Animation
+          </button>
+          <select id="effectSelect" name="effect">
+            <option value="0">Shooting Star</option>
+            <option value="2">Shooting Star 2</option>
+            <option value="1">Shooting Star Rainbow 1</option>
+            <option value="3">Shooting Star Rainbow 2</option>
+            <option value="4">Rainbow Chase (4 groups)</option>
+            <option value="5">Rainbow Chase (8 groups)</option>
+            <option value="6">Rainbow Chase (16 groups)</option>
+            <option value="7">Thunder</option>
+          </select>
+        </div>
+      </div>
+
     </form>
     <div class="mt-6">
-      
+
       <p class="font-semibold">Displayed Image:</p>
       <div id="currentImage" class="flex flex-wrap gap-4 mt-2"></div>
     </div>
@@ -50,26 +74,23 @@
   </div>
 
   <!-- Right Panel: Visualization -->
-   <div class="bg-white p-6 rounded shadow-md max-w-lg ">
-  <h1 class="text-3xl font-bold text-red-800 mb-4">Simulated Lamp</h1>
+  <div class="bg-white p-6 rounded shadow-md max-w-lg ">
+    <h1 class="text-3xl font-bold text-red-800 mb-4">Simulated Lamp</h1>
 
-  <div class="flex flex-col items-center space-y-4">
-    <!-- Progress Bar -->
-   
+    <div class="flex flex-col items-center space-y-4">
+      <!-- Progress Bar -->
 
-    <!-- 3D Render Area -->
+
+      <!-- 3D Render Area -->
       <div id="threeContainer" class="w-128 h-128 border border-gray-400 rounded overflow-hidden"></div>
-       <div id="loading-container" class="w-32 h-1 bg-gray-300 relative justify-start">
-      <div
-        id="loading-bar"
-        class="absolute left-0 top-0 h-1 bg-blue-600 transition-all duration-300"
-        style="width: 0%;"
-      ></div>
-    </div>
+      <div id="loading-container" class="w-32 h-1 bg-gray-300 relative justify-start">
+        <div id="loading-bar" class="absolute left-0 top-0 h-1 bg-blue-600 transition-all duration-300"
+          style="width: 0%;"></div>
+      </div>
       <!-- Keep Three.js scripts below -->
       <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
       <script src="{{ url_for('static', filename='script.js') }}"></script>
-  </div>
+    </div>
   </div>
 </div>
 
