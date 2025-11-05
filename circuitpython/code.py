@@ -269,7 +269,7 @@ while on:
         thunder()
 print("ESP32 SPI webclient test")
   
-BASE_URL = "http://10.30.1.4:5000//"
+BASE_URL = "http://sunriselamp.pythonanywhere.com//"
 JSON_URL = BASE_URL + "/processed-image"
 
 LITE_JSON_URL = BASE_URL + "/get-update-lite"
@@ -299,7 +299,7 @@ while not esp.is_connected:
     except OSError as e:
         print("could not connect to AP, retrying: ", e)
         continue
-
+print('connected')
 def interpolate_frames(frame1, frame2, steps):
     """Generates intermediate frames between frame_a and frame_b."""
     interpolated = []
@@ -320,7 +320,6 @@ def interpolate_frames(frame1, frame2, steps):
         interpolated.append(frame)
 
     return interpolated
-
 def decode_frame_stream(b64_data, width, height, mode=0):
     BASE64_LOOKUP = {c: i for i, c in enumerate("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")}
     b64_data = b64_data.rstrip("=")
@@ -375,6 +374,7 @@ brightness = 0
 def scale_color(color, brightness):
     return tuple(int(c * brightness) for c in color)
 i = 1
+
 toggle = True
 while True:
     if toggle:
